@@ -7,13 +7,13 @@ export default function ImageGallery({ images }) {
   return (
     <ul className={s.ImageGallery}>
       {images &&
-        images.map(image => {
+        images.map((image, index) => {
           return (
             <ImageGalleryItem
               src={image.webformatURL}
               alt={image.tags}
               largeImageURL={image.largeImageURL}
-              key={image.id}
+              key={index}
             />
           );
         })}
