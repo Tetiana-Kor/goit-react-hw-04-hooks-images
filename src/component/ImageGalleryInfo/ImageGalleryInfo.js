@@ -24,8 +24,6 @@ export default function ImageGalleryInfo({ imageName }) {
       return;
     }
 
-    // setImages([]);
-    // setCurrentPage(1);
     setStatus(Status.PENDING);
 
     pixabayAPI
