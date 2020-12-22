@@ -1,19 +1,112 @@
-import { useState } from 'react';
-import { ToastContainer } from 'react-toastify';
+import { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
+import Loader from 'react-loader-spinner';
+import { ToastContainer, toast } from 'react-toastify';
 import Searchbar from './component/Searchbar';
 import ImageGalleryInfo from './component/ImageGalleryInfo';
 import Container from './component/Container';
+import ImageGallery from './component/ImageGallery';
+import pixabayAPI from './service/pixabay-api';
+import Button from './component/Button';
 import './App.css';
+
+const Status = {
+  IDLE: 'idle',
+  PENDING: 'pending',
+  RESOLVED: 'resolved',
+  REJECTED: 'rejected',
+};
 
 export default function App() {
   const [imageName, setImageName] = useState('');
+  const [images, setImages] = useState([]);
+  const [status, setStatus] = useState(Status.IDLE);
+  const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const handleSearchForm = imageName => {
+    setImageName(imageName);
+    setImages([]);
+    setCurrentPage(1);
+  };
+
+  useEffect(() => {
+    if (!imageName) {
+      return;
+    }
+
+    setStatus(Status.PENDING);
+
+    pixabayAPI
+      .fetchImage(imageName, currentPage)
+      .then(images => {
+        if (images.total === 0) {
+          toast.dark('No images. Please try another query!');
+          setStatus(Status.REJECTED);
+
+          return;
+        }
+
+        setImages(prevState => [...prevState, ...images.hits]);
+        setStatus(Status.RESOLVED);
+      })
+      .catch(error => {
+        setError(error);
+        setStatus(Status.REJECTED);
+      })
+      .finally(() => {
+        setTimeout(() => {
+          window.scrollTo({
+            top: document.documentElement.scrollHeight,
+            behavior: 'smooth',
+          });
+        }, 500);
+      });
+  }, [currentPage, imageName, error]);
+
+  const onClickLoadMore = () => {
+    setCurrentPage(prevState => prevState + 1);
+  };
 
   return (
     <Container>
-      <Searchbar onSubmit={setImageName} />
-      <ImageGalleryInfo imageName={imageName} />
+      <Searchbar onSubmit={handleSearchForm} />
+
+      {status === Status.IDLE && (
+        <div
+          style={{
+            margin: '20px auto',
+            textAlign: 'center',
+            fontSize: '20px',
+          }}
+        >
+          Please, enter a query!
+        </div>
+      )}
+      {images.length > 0 && (
+        <>
+          <ImageGallery images={images} />
+          <Button onClickLoadMore={onClickLoadMore} />
+        </>
+      )}
+
+      {status === Status.PENDING && (
+        <div>
+          <Loader
+            type="Circles"
+            color="#00BFFF"
+            height={100}
+            width={100}
+            timeout={3000} //3 secs
+          />
+        </div>
+      )}
+      {status === Status.REJECTED && null}
 
       <ToastContainer autoClose={3000} />
     </Container>
   );
 }
+ImageGalleryInfo.propTypes = {
+  imageName: PropTypes.string.isRequired,
+};
